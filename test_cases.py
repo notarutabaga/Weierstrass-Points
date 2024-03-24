@@ -15,6 +15,18 @@ def new_graph(edges, divisor):
     
     return G 
 
+def cubic():
+    edges = [(0, 1), (0, 3), (0, 5),
+        (1, 2), (1, 6),
+        (2, 3), (2, 7),
+        (3, 4),
+        (4, 5), (4, 7),
+        (5, 6),
+        (6, 7),
+        (8, 0), (8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7)]
+
+    return new_graph(edges, 0)
+
 def housex():
     edges = [(0, 1), (0, 2),
             (1, 2), (1, 3), (1, 4),
@@ -42,6 +54,16 @@ def tulip():
     
     return new_graph(edges, 0)
 
+def cycle(n):
+    edges = []
+    for i in range(n):
+        edges.append((i, (i+1) % n))
+        
+    G = new_graph(edges, 0)
+    
+    return G
+    
+
 def complete(n):
     G = Graph.Full(n)
     
@@ -53,13 +75,40 @@ def complete(n):
     return G 
 
 def compl_bipart(n, m):
-    G = new_graph([], 0)
-    G.add_vertices(n + m)
-
-    for i in range(n):
-        for j in range(m):
-            G.add_edge(i, n + j)
+    G = ig.Graph.Full_Bipartite(n, m)
+    
+    G.vs["divisor"] = 0
+    
+    G.vs["burned"] = False
+    G.es["burned"] = False
+    
+    G.vs["weier"] = False
             
+    return G
+
+# TO DOOOOO
+def gen_peter(n, k):
+    G = cycle(n)
+    G.add_vertices(n)
+    
+    for i in range(n):
+        G.add_edge(i, i + n)
+    
+    return G
+        
+def wheel(n):
+    G = cycle(n-1)
+    G.add_vertices(1)
+    
+    for i in range(n-1):
+        G.add_edge(i, n-1)
+    
+    G.vs["divisor"] = 0
+    G.vs["weier"] = False
+    
+    G.vs["burned"] = False
+    G.es["burned"] = False  
+    
     return G
 
 # G1 = housex()
@@ -69,11 +118,21 @@ def compl_bipart(n, m):
 # G2.vs["divisor"] = canonical(G2)
 
 # fig, ax = plt.subplots(figsize=(5,5))
+# G = cycle(5)
+# G.add_edge(0,2)
     
-# formatted_labels = [f'$v_{{{str(v.index + 1)}}}$' for v in G1.vs]
+# formatted_labels = [f'$v_{{{str(v.index + 1)}}}$' for v in G.vs]
 
 # # Assign the labels to the vertices
-# G1.vs['label'] = formatted_labels
+# G.vs['label'] = formatted_labels
+
+# ig.plot(
+#     G,
+#     target="pptex.png",
+#     layout="circle",
+#     vertex_color="lightsteelblue",
+#     vertex_label=G.vs['label'],
+# )
     
 # ig.plot(
 #     G1,
@@ -124,3 +183,4 @@ def compl_bipart(n, m):
 #     edge_color=["darkseagreen" if burned else "black" for burned in G2.es["burned"]],
 #     vertex_label=G2.vs["divisor"]
 # )
+

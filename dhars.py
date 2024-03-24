@@ -34,14 +34,55 @@ def is_burned(burned):
     
     return True 
 
+def make_effective_away_from(G, q):
+    # construct laplacian: adjacency matrix - degree matrix
+    jacobian = np.array(list(G.get_adjacency()))
+    for v in G.vs:
+        jacobian[v.index][v.index] = -G.degree(v)
+    
+    # jacobian is the laplacian without row k and column k
+    jacobian = np.delete(jacobian, G.vcount()-1, 0)
+    jacobian = np.delete(jacobian, G.vcount()-1, 1)
+    
+    # determinant of jacobian
+    m = np.linalg.det(jacobian)
+    
+    # for each inneffective vertex (not q), fire m chips from q to v until effective
+    for v in G.vs:
+        if v != q: 
+            while G.vs[v.index]["divisor"] < 0:
+                G.vs[v.index]["divisor"] += m
+                G.vs[q.index]["divisor"] -= m
+                
+    return G.vs["divisor"]
+
+def print_graph(G,i):
+    # fig, ax = plt.subplots(figsize=(5,5))
+    
+    ig.plot(
+        G,
+        target="step"+str(i)+".png",
+        layout="circle",
+        vertex_color=["indianred" if burned else "lightsteelblue" for burned in G.vs["burned"]],
+        edge_color=["indianred" if burned else "black" for burned in G.es["burned"]],
+        vertex_label=[div for div in G.vs["divisor"]]
+    )
+    
+    # plt.show()
     
 # performs dhar's burning algoriothm on G
 def dhars_burning(G):
+    i=0
+    
+    # print("original graph")
+    # print_graph(G,i)
+    # i+=1
+    
     # if D is already effective, done
     if is_effective(G.vs["divisor"]): 
         return True
     
-    if sum(G.vs["divisor"]) < 0:
+    if degree(G.vs["divisor"]) < 0:
         return False
     
     # find subset of D that is not effective
@@ -49,42 +90,51 @@ def dhars_burning(G):
     
     # choose one of the chips in debt at random
     q = random.choice(in_debt)
-        
-    while not is_effective_away(G, q.index):
-        print(G.vs["divisor"])
-        print(q.index)
-        queue = []
-        queue.append(q)
-        
-        G.vs["visited"] = False
-        
-        while len(queue) > 0:
-            curr = queue.pop(0)
-            curr_neighbors = curr.neighbors()
-            
-            for neighbor in curr_neighbors:
-                if not G.vs[neighbor.index]["visited"] and G.vs[neighbor.index]["divisor"] < 0:
-                    G.vs[curr.index]["divisor"] += G.vs[neighbor.index]["divisor"]
-                    G.vs[neighbor.index]["divisor"] = 0
-            
-            for neighbor in curr_neighbors:
-                if not G.vs[neighbor.index]["visited"]:
-                    queue.append(neighbor)
-            
-            G.vs[curr.index]["visited"] = True   
-        
-        print(G.vs["divisor"])
-        print()
     
-    print("============================")
+    # make the divisor effective away from q
+    if not is_effective_away(G, q.index): 
+        # G.vs["divisor"] = make_effective_away_from(G, q)
+        # construct laplacian: adjacency matrix - degree matrix
+        jacobian = np.array(list(G.get_adjacency()))
+        for v in G.vs:
+            jacobian[v.index][v.index] = -G.degree(v)
         
+        # jacobian is the laplacian without row k and column k
+        jacobian = np.delete(jacobian, G.vcount()-1, 0)
+        jacobian = np.delete(jacobian, G.vcount()-1, 1)
+        print(jacobian)
+        
+        # determinant of jacobian
+        m = round(abs(np.linalg.det(jacobian)))
+        print("m = " + str(m))
+        
+        # for each inneffective vertex (not q), fire m chips from q to v until effective
+        for v in G.vs:
+            if v != q: 
+                while G.vs[v.index]["divisor"] < 0:
+                    G.vs[v.index]["divisor"] += m
+                    G.vs[q.index]["divisor"] -= m
+    
+    # print("after making effective away from q")                
+    # print_graph(G,i)
+    # i+=1
+                
+    # set all burning to false    
     G.vs["burned"] = False
     G.es["burned"] = False
            
     # continue the burning and firing process until D is effective or the entire graph is burned
     while not is_effective(G.vs["divisor"]) and not is_burned(G.vs["burned"]):
+        # print("start of next dhar's iteration")
+        # print_graph(G,i)
+        # i+=1
+        
         G.vs["burned"] = False # reset all vertices
         G.es["burned"] = False # reset all edges
+        
+        # print("reset burn")
+        # print_graph(G,i)
+        # i+=1
         
         G.vs[q.index]["burned"] = True
         
@@ -102,6 +152,10 @@ def dhars_burning(G):
         
         # controls how far the fire spreads before firing
         spread = True
+        
+        # print("before spreading fire")
+        # print_graph(G,i)
+        # i+=1
         
         # loop
         while spread:
@@ -143,6 +197,10 @@ def dhars_burning(G):
                     # since we were able to burn another node, we may be able to spread farther
                     spread = True
         
+        # print("after spreading fire")
+        # print_graph(G,i)
+        # i+=1
+        
         # fire from unburned nodes along burned edges only
         for node in unburned_nodes:
             curr_neighbors = node.neighbors()
@@ -156,10 +214,22 @@ def dhars_burning(G):
                     if G.es[edge]["burned"]:
                         G.vs[node.index]["divisor"] -= 1
                         G.vs[target.index]["divisor"] += 1
+        
+        # print("after firing along burned edges")
+        # print_graph(G,i)
+        # i+=1
+    
+    # print("final graph (before reset)")                    
+    # print_graph(G,i)
+    # i+=1
     
     # reset
     G.vs["burned"] = False
     G.es["burned"] = False
+    
+    # print("final graph (after reset)")
+    # print_graph(G,i)
+    # i+=1
     
     if is_effective(G.vs["divisor"]):
         return True 
